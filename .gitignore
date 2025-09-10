@@ -2,3 +2,5 @@ ui/ingebot-key.json
 .idea
 .expo
 .git
+ui/.venv
+stl/.venv
