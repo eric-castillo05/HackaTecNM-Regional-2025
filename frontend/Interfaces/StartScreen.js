@@ -42,7 +42,7 @@ const StartScreen = ({ navigation }) => {
                     }
                 ]}>
                     <Image
-                        source={require('../assets/logo.png')}
+                        source={require('../assets/logo.jpeg')}
                         style={styles.logoImage}
                     />
                 </Animated.View>
@@ -60,50 +60,50 @@ const StartScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#e6f2fb', // azul claro
+  container: {
+    flex: 1,
+    backgroundColor: "#e6f2fb", // azul claro
+  },
+  content: {
+    flex: 1,
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 60,
+  },
+  logoContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  logoImage: {
+    width: width * 0.8,
+    height: width * 0.8,
+    resizeMode: "contain",
+    maxWidth: 400,
+    maxHeight: 400,
+  },
+  button: {
+    backgroundColor: "#357ABC", // azul principal
+    paddingVertical: 18,
+    width: width * 0.85,
+    maxWidth: 400,
+    borderRadius: 25,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
     },
-    content: {
-        flex: 1,
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: 60,
-    },
-    logoContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    logoImage: {
-        width: width * 0.8,
-        height: width * 0.8,
-        resizeMode: 'contain',
-        maxWidth: 400,
-        maxHeight: 400,
-    },
-    button: {
-        backgroundColor: '#2196f3', // azul principal
-        paddingVertical: 18,
-        width: width * 0.85,
-        maxWidth: 400,
-        borderRadius: 25,
-        elevation: 5,
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.15,
-        shadowRadius: 3.84,
-    },
-    buttonText: {
-        fontSize: 18,
-        color: '#22313f', // azul oscuro
-        fontWeight: 'bold',
-        textAlign: 'center',
-        letterSpacing: 1,
-    },
+    shadowOpacity: 0.15,
+    shadowRadius: 3.84,
+  },
+  buttonText: {
+    fontSize: 18,
+    color: "#ffffff", // azul oscuro
+    fontWeight: "bold",
+    textAlign: "center",
+    letterSpacing: 1,
+  },
 });
 
 export default StartScreen;
