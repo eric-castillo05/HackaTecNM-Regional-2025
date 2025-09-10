@@ -62,7 +62,7 @@ const StartScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#121212',
+        backgroundColor: '#e6f2fb', // azul claro
     },
     content: {
         flex: 1,
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
         maxHeight: 400,
     },
     button: {
-        backgroundColor: '#4d0f8e',
+        backgroundColor: '#2196f3', // azul principal
         paddingVertical: 18,
         width: width * 0.85,
         maxWidth: 400,
@@ -94,12 +94,12 @@ const styles = StyleSheet.create({
             width: 0,
             height: 2,
         },
-        shadowOpacity: 0.25,
+        shadowOpacity: 0.15,
         shadowRadius: 3.84,
     },
     buttonText: {
         fontSize: 18,
-        color: '#ffffff',
+        color: '#22313f', // azul oscuro
         fontWeight: 'bold',
         textAlign: 'center',
         letterSpacing: 1,
