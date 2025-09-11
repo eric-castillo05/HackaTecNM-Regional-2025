@@ -43,6 +43,7 @@ export default function App() {
                 <Stack.Screen name="Compatibilidad" component={CompatibilidadScreen}/>
                 <Stack.Screen name="Catalogo" component={CatalogoScreen}/>
                 <Stack.Screen name="Configuracion" component={ConfiguracionScreen}/>
+                <Stack.Screen name="Explosionado" component={explosionado}/>
 
             </Stack.Navigator>
         </NavigationContainer>

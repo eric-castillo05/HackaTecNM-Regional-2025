@@ -9,6 +9,8 @@ import {
     TouchableOpacity
 } from 'react-native';
 import { Audio } from 'expo-av';
+import { useNavigation } from '@react-navigation/native';
+
 
 const ASSEMBLYAI_API_KEY = '7cbc39b7c733465f8546b25cf4cfc1c6';
 
@@ -26,6 +28,9 @@ export default function App() {
     const listeningRecording = useRef(null);
     const listeningInterval = useRef(null);
     const assistantCallsCount = useRef(0);
+
+    const navigation = useNavigation();
+
 
     useEffect(() => {
         console.log('🚀 Iniciando sistema de asistente de voz');
@@ -499,6 +504,11 @@ export default function App() {
         }
     };
 
+    const handlePloty = async () => {
+        navigation.navigate('Explosionado');
+
+    }
+
     return (
         <View style={styles.container}>
             <Text style={styles.title}>🤖 Asistente de Voz</Text>
@@ -548,6 +558,9 @@ export default function App() {
                     >
                         <Text style={styles.testButtonText}>🧪 Prueba Manual</Text>
                     </TouchableOpacity>
+
+
+
                 </View>
             )}
 
@@ -577,6 +590,11 @@ export default function App() {
                     {translation || 'La traducción aparecerá aquí después de hablar...'}
                 </Text>
             </ScrollView>
+
+
+            <TouchableOpacity style={styles.testButton} onPress={handlePloty}>
+                <Text style={styles.testButtonText}>🧪 Prueba Manual</Text>
+            </TouchableOpacity>
         </View>
     );
 }
