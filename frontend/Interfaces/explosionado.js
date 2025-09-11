@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, PanResponder } from 'react-native';
 import * as THREE from 'three';
 import { GLView } from 'expo-gl';
 import * as FileSystem from 'expo-file-system';
@@ -10,11 +10,44 @@ const Explosionado = ({ navigation }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [stats, setStats] = useState({});
     const [exploded, setExploded] = useState(false);
+    const [isWebGLReady, setIsWebGLReady] = useState(false);
+    const [rotation, setRotation] = useState({ x: 0, y: 0 });
+    const [autoRotate, setAutoRotate] = useState(true);
     const glViewRef = useRef(null);
     const sceneRef = useRef(new THREE.Scene());
     const cameraRef = useRef(null);
     const rendererRef = useRef(null);
     const meshRef = useRef(null);
+    
+    // Create PanResponder for rotation controls
+    const panResponder = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: () => true,
+            onPanResponderGrant: () => {
+                // Disable auto rotation when user starts touching
+                setAutoRotate(false);
+                console.log('Manual rotation started');
+            },
+            onPanResponderMove: (evt, gestureState) => {
+                const { dx, dy } = gestureState;
+                // Convert touch movement to rotation with better sensitivity
+                const sensitivity = 0.008;
+                setRotation(prev => ({
+                    x: prev.x + dy * sensitivity,
+                    y: prev.y + dx * sensitivity
+                }));
+            },
+            onPanResponderRelease: () => {
+                console.log('Manual rotation ended');
+                // Re-enable auto rotation after a shorter delay
+                setTimeout(() => {
+                    setAutoRotate(true);
+                    console.log('Returning to auto rotation');
+                }, 1500); // 1.5 seconds delay
+            },
+        })
+    ).current;
 
     // Process JSON vectors (array of triangles: [[[x,y,z], [x,y,z], [x,y,z]], ...])
     const processVectors = (jsonData) => {
@@ -55,21 +88,57 @@ const Explosionado = ({ navigation }) => {
         let plotZ = [...z];
 
         if (isExploded) {
-            const explosionFactor = 2.0;
+            console.log('Starting explosion calculation...');
+            
+            // Calculate global center of the model
+            const globalCenterX = x.reduce((sum, val) => sum + val, 0) / x.length;
+            const globalCenterY = y.reduce((sum, val) => sum + val, 0) / y.length;
+            const globalCenterZ = z.reduce((sum, val) => sum + val, 0) / z.length;
+            
+            console.log(`Global center: [${globalCenterX.toFixed(2)}, ${globalCenterY.toFixed(2)}, ${globalCenterZ.toFixed(2)}]`);
+            console.log(`Total vertices: ${x.length}, Total triangles: ${triangles.length}`);
+            
+            // Use a larger explosion factor for better visibility
+            const explosionFactor = 10.0;
+            
+            // Process each triangle separately to create explosion effect
             triangles.forEach((triangle) => {
-                const centerX = (x[triangle[0]] + x[triangle[1]] + x[triangle[2]]) / 3;
-                const centerY = (y[triangle[0]] + y[triangle[1]] + y[triangle[2]]) / 3;
-                const centerZ = (z[triangle[0]] + z[triangle[1]] + z[triangle[2]]) / 3;
-
+                // Calculate triangle center
+                const triCenterX = (x[triangle[0]] + x[triangle[1]] + x[triangle[2]]) / 3;
+                const triCenterY = (y[triangle[0]] + y[triangle[1]] + y[triangle[2]]) / 3;
+                const triCenterZ = (z[triangle[0]] + z[triangle[1]] + z[triangle[2]]) / 3;
+                
+                // Direction from global center to triangle center
+                const dirX = triCenterX - globalCenterX;
+                const dirY = triCenterY - globalCenterY;
+                const dirZ = triCenterZ - globalCenterZ;
+                
+                // Normalize direction vector
+                const length = Math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ);
+                const normalizedDirX = length > 0 ? dirX / length : 0;
+                const normalizedDirY = length > 0 ? dirY / length : 0;
+                const normalizedDirZ = length > 0 ? dirZ / length : 0;
+                
+                // Move each vertex of the triangle along the explosion direction
+                const displacement = explosionFactor * 20; // Even larger displacement
                 triangle.forEach((vertexIndex) => {
-                    const dx = x[vertexIndex] - centerX;
-                    const dy = y[vertexIndex] - centerY;
-                    const dz = z[vertexIndex] - centerZ;
-                    plotX[vertexIndex] = x[vertexIndex] + dx * explosionFactor;
-                    plotY[vertexIndex] = y[vertexIndex] + dy * explosionFactor;
-                    plotZ[vertexIndex] = z[vertexIndex] + dz * explosionFactor;
+                    const oldX = plotX[vertexIndex];
+                    const oldY = plotY[vertexIndex];
+                    const oldZ = plotZ[vertexIndex];
+                    
+                    plotX[vertexIndex] = x[vertexIndex] + normalizedDirX * displacement;
+                    plotY[vertexIndex] = y[vertexIndex] + normalizedDirY * displacement;
+                    plotZ[vertexIndex] = z[vertexIndex] + normalizedDirZ * displacement;
+                    
+                    // Log first few changes for debugging
+                    if (vertexIndex < 3) {
+                        console.log(`Vertex ${vertexIndex}: [${oldX.toFixed(1)}, ${oldY.toFixed(1)}, ${oldZ.toFixed(1)}] -> [${plotX[vertexIndex].toFixed(1)}, ${plotY[vertexIndex].toFixed(1)}, ${plotZ[vertexIndex].toFixed(1)}]`);
+                    }
                 });
             });
+            console.log('Explosion calculation completed!');
+        } else {
+            console.log('Using normal geometry (no explosion)');
         }
 
         const geometry = new THREE.BufferGeometry();
@@ -142,59 +211,133 @@ const Explosionado = ({ navigation }) => {
         }
     }, []);
 
+    // Function to update mesh (to be called from onContextCreate and when exploded changes)
+    const updateMesh = () => {
+        if (isLoading || !isWebGLReady) {
+            console.log('Skipping mesh update - WebGL not ready or still loading');
+            return;
+        }
+        
+        console.log(`Updating mesh with exploded=${exploded}`);
+        const processedData = processVectors(chairData);
+        const geometry = createGeometry(processedData, exploded);
+        
+        if (meshRef.current) {
+            console.log('Removing existing mesh');
+            sceneRef.current.remove(meshRef.current);
+            meshRef.current.geometry.dispose();
+        }
+        const material = new THREE.MeshPhongMaterial({
+            color: exploded ? 0xff6b6b : 0x74c0fc, // Red for exploded, light blue for normal
+            opacity: exploded ? 0.9 : 0.8,
+            transparent: true,
+            side: THREE.DoubleSide, // Show both sides of triangles
+        });
+        meshRef.current = new THREE.Mesh(geometry, material);
+        console.log('Adding new mesh to scene');
+        sceneRef.current.add(meshRef.current);
+    };
+
     // Update 3D model when exploded state changes
     useEffect(() => {
-        if (!glViewRef.current || isLoading) return;
-
-        const updateMesh = () => {
-            const processedData = processVectors(chairData);
-            const geometry = createGeometry(processedData, exploded);
-            if (meshRef.current) {
-                sceneRef.current.remove(meshRef.current);
-                meshRef.current.geometry.dispose();
-            }
-            const material = new THREE.MeshPhongMaterial({
-                color: 'lightblue',
-                opacity: 0.8,
-                transparent: true,
-            });
-            meshRef.current = new THREE.Mesh(geometry, material);
-            sceneRef.current.add(meshRef.current);
-        };
-
         updateMesh();
-    }, [exploded, isLoading]);
+    }, [exploded, isLoading, isWebGLReady]);
 
     // Set up Three.js renderer
     const onContextCreate = async (gl) => {
+        console.log('onContextCreate called!');
         const { drawingBufferWidth: width, drawingBufferHeight: height } = gl;
+        console.log(`Canvas size: ${width} x ${width}`);
 
-        rendererRef.current = new THREE.WebGLRenderer({
-            context: gl,
-            antialias: true,
-        });
-        rendererRef.current.setSize(width, height);
-        rendererRef.current.setClearColor(0xffffff, 1);
+        try {
+            console.log('Creating WebGLRenderer with expo-gl-cpp...');
+            // Use expo-gl compatible approach
+            rendererRef.current = new THREE.WebGLRenderer({
+                canvas: {
+                    width: width,
+                    height: height,
+                    style: {},
+                    addEventListener: () => {},
+                    removeEventListener: () => {},
+                    clientHeight: height,
+                    clientWidth: width,
+                },
+                context: gl,
+                antialias: true,
+            });
+            console.log('WebGLRenderer created successfully');
+            
+            rendererRef.current.setSize(width, height, false);
+            rendererRef.current.setClearColor(0xffffff, 1);
+            console.log('Renderer configured');
 
-        cameraRef.current = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-        // Adjust camera based on model size
-        const processedData = processVectors(chairData);
-        const box = new THREE.Box3().setFromArray(processedData.x.map((x, i) => [x, processedData.y[i], processedData.z[i]]));
-        const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
-        const maxDim = Math.max(size.x, size.y, size.z);
-        cameraRef.current.position.set(center.x + maxDim * 1.5, center.y + maxDim * 1.5, center.z + maxDim * 1.5);
-        cameraRef.current.lookAt(center);
+            console.log('Creating camera...');
+            cameraRef.current = new THREE.PerspectiveCamera(45, width / height, 0.1, 10000);
+            console.log('Camera created successfully');
+            
+            console.log('Processing chair data...');
+            const processedData = processVectors(chairData);
+            console.log('Data processed successfully');
+            
+            // Manual bounding box calculation
+            const minX = Math.min(...processedData.x);
+            const maxX = Math.max(...processedData.x);
+            const minY = Math.min(...processedData.y);
+            const maxY = Math.max(...processedData.y);
+            const minZ = Math.min(...processedData.z);
+            const maxZ = Math.max(...processedData.z);
+            
+            const centerX = (minX + maxX) / 2;
+            const centerY = (minY + maxY) / 2;
+            const centerZ = (minZ + maxZ) / 2;
+            
+            const sizeX = maxX - minX;
+            const sizeY = maxY - minY;
+            const sizeZ = maxZ - minZ;
+            const maxDim = Math.max(sizeX, sizeY, sizeZ);
+            
+            console.log(`Model bounds: [${minX.toFixed(1)}, ${minY.toFixed(1)}, ${minZ.toFixed(1)}] to [${maxX.toFixed(1)}, ${maxY.toFixed(1)}, ${maxZ.toFixed(1)}]`);
+            console.log(`Center: [${centerX.toFixed(1)}, ${centerY.toFixed(1)}, ${centerZ.toFixed(1)}], Max dimension: ${maxDim.toFixed(1)}`);
+            
+            // Position camera further back to accommodate explosion effect
+            cameraRef.current.position.set(centerX + maxDim * 3, centerY + maxDim * 3, centerZ + maxDim * 3);
+            cameraRef.current.lookAt(new THREE.Vector3(centerX, centerY, centerZ));
+            console.log('Camera positioned');
 
-        const light = new THREE.DirectionalLight(0xffffff, 0.8);
-        light.position.set(100, 200, 0);
-        sceneRef.current.add(light);
+            // Add multiple lights for better visibility
+            const mainLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            mainLight.position.set(100, 200, 100);
+            sceneRef.current.add(mainLight);
+            console.log('Main light added');
+            
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.4); // soft white light
+            sceneRef.current.add(ambientLight);
+            console.log('Ambient light added');
+            
+            const backLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            backLight.position.set(-100, -200, -100);
+            sceneRef.current.add(backLight);
+            console.log('Back light added');
+        
+            // Mark WebGL as ready and create initial mesh
+            console.log('Setting WebGL as ready and creating initial mesh');
+            setIsWebGLReady(true);
+        } catch (error) {
+            console.error('Error in onContextCreate:', error);
+        }
 
         const animate = () => {
             if (!rendererRef.current) return;
             requestAnimationFrame(animate);
             if (meshRef.current) {
-                meshRef.current.rotation.y += 0.01; // Rotate for better visualization
+                if (autoRotate) {
+                    // Auto rotation when not being manipulated
+                    meshRef.current.rotation.y += 0.01;
+                } else {
+                    // Apply manual rotation smoothly
+                    meshRef.current.rotation.x = rotation.x;
+                    meshRef.current.rotation.y = rotation.y;
+                }
             }
             rendererRef.current.render(sceneRef.current, cameraRef.current);
             gl.flush();
@@ -204,7 +347,15 @@ const Explosionado = ({ navigation }) => {
     };
 
     const toggleExplosion = () => {
-        setExploded(!exploded);
+        const newExploded = !exploded;
+        console.log(`Toggling explosion: ${exploded} -> ${newExploded}`);
+        setExploded(newExploded);
+    };
+    
+    const resetRotation = () => {
+        console.log('Resetting rotation to default');
+        setRotation({ x: 0, y: 0 });
+        setAutoRotate(true);
     };
 
     const handleExportSTL = async () => {
@@ -240,17 +391,35 @@ const Explosionado = ({ navigation }) => {
                         {exploded ? 'Vista Normal' : 'Vista Explosionada'}
                     </Text>
                 </TouchableOpacity>
+                <TouchableOpacity style={styles.button} onPress={resetRotation}>
+                    <Text style={styles.buttonText}>Reset Rotación</Text>
+                </TouchableOpacity>
                 <TouchableOpacity style={styles.button} onPress={handleExportSTL}>
                     <Text style={styles.buttonText}>Exportar STL</Text>
                 </TouchableOpacity>
+                <TouchableOpacity 
+                    style={[styles.button, { backgroundColor: '#FF6B35' }]} 
+                    onPress={() => navigation.navigate('DashExplorer')}
+                >
+                    <Text style={styles.buttonText}>🌐 Dash Explorer</Text>
+                </TouchableOpacity>
             </View>
-            <View style={styles.plotContainer}>
-                <GLView style={{ flex: 1, height: 300 }} onContextCreate={onContextCreate} />
-                <Text style={styles.plotSubtext}>Estado: {exploded ? 'Explotado' : 'Normal'}</Text>
+            <View style={styles.plotContainer} {...panResponder.panHandlers}>
+                <GLView ref={glViewRef} style={{ flex: 1, height: 300 }} onContextCreate={onContextCreate} />
+                <Text style={styles.plotSubtext}>
+                    Estado: {exploded ? 'Explotado' : 'Normal'} | 
+                    Rotación: {autoRotate ? 'Automática' : `Manual (X: ${rotation.x.toFixed(2)}, Y: ${rotation.y.toFixed(2)})`}
+                </Text>
+            </View>
+            <View style={styles.dataInfo}>
+                <Text style={styles.infoTitle}>Controles:</Text>
+                <Text style={styles.infoText}>• Arrastra para rotar manualmente</Text>
+                <Text style={styles.infoText}>• Usa "Reset Rotación" para volver a rotación automática</Text>
+                <Text style={styles.infoText}>• "Vista Explosionada" separa los componentes</Text>
             </View>
             <View style={styles.dataInfo}>
                 <Text style={styles.infoTitle}>Datos del Modelo:</Text>
-                <Text style={steps.infoText}>Puntos: {stats.vertices}</Text>
+                <Text style={styles.infoText}>Puntos: {stats.vertices}</Text>
                 <Text style={styles.infoText}>Caras: {stats.triangles}</Text>
             </View>
         </ScrollView>
@@ -296,12 +465,16 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-around',
         marginBottom: 20,
+        flexWrap: 'wrap',
+        gap: 10,
     },
     button: {
         backgroundColor: '#007AFF',
         padding: 12,
         borderRadius: 8,
-        minWidth: 120,
+        minWidth: 100,
+        flex: 1,
+        marginHorizontal: 5,
     },
     buttonText: {
         color: 'white',

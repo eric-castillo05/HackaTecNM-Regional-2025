@@ -12,6 +12,10 @@ import ConfiguracionScreen from "./Interfaces/ConfiguracionScreen";
 import SignIn from "./Interfaces/SignIn";
 import EmpecemosScreen from "./Interfaces/EmpecemosScreen";
 import SignUp from "./Interfaces/SignUp";
+import testAssemblyAI from "./Interfaces/testAssemblyAI";
+import explosionado from "./Interfaces/explosionado.js";
+import DashExplorer from "./Interfaces/DashExplorer.js";
+import PlotlyExplorer from "./Interfaces/PlotlyExplorer.js";
 
 
 const Stack = createStackNavigator();
@@ -24,6 +28,10 @@ export default function App() {
                     headerShown: false, // Oculta el encabezado en todas las pantallas
                 }}
             >
+                <Stack.Screen name="test" component={testAssemblyAI}/>
+                <Stack.Screen name="exploit" component={explosionado}/>
+                <Stack.Screen name="DashExplorer" component={DashExplorer}/>
+                <Stack.Screen name="PlotlyExplorer" component={PlotlyExplorer}/>
                 <Stack.Screen name="Start" component={StartScreen} />
                 <Stack.Screen name="Empecemos" component={EmpecemosScreen} />
                 <Stack.Screen name="SignUp" component={SignUp} />
