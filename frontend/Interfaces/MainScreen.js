@@ -132,6 +132,20 @@ const MainScreen = ({ navigation }) => {
                     onPress={() => navigation.navigate("Compatibilidad")}
                 />
                 <MenuItem
+                    icon="chart-line"
+                    title="Plotly Explorer"
+                    type="FontAwesome5"
+                    onPress={() => navigation.navigate("PlotlyExplorer")}
+                    color="#667eea"
+                />
+                <MenuItem
+                    icon="cube"
+                    title="Dash Explorer"
+                    type="FontAwesome5"
+                    onPress={() => navigation.navigate("DashExplorer")}
+                    color="#51cf66"
+                />
+                <MenuItem
                     icon="settings-outline"
                     title="Configuración"
                     onPress={() => navigation.navigate("Configuracion")}
@@ -168,6 +182,18 @@ const MainScreen = ({ navigation }) => {
                         <FontAwesome5 name="puzzle-piece" size={32} color="#1a237e" />
                         <Text style={styles.cardTitle}>Compatibilidad</Text>
                         <Text style={styles.cardSubtitle}>Verifica compatibilidad</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate("PlotlyExplorer")}>
+                        <FontAwesome5 name="chart-line" size={32} color="#667eea" />
+                        <Text style={styles.cardTitle}>Plotly Explorer</Text>
+                        <Text style={styles.cardSubtitle}>Visualizador 3D avanzado</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate("DashExplorer")}>
+                        <FontAwesome5 name="cube" size={32} color="#51cf66" />
+                        <Text style={styles.cardTitle}>Dash Explorer</Text>
+                        <Text style={styles.cardSubtitle}>Conexión con backend Python</Text>
                     </TouchableOpacity>
                 </View>
             </View>

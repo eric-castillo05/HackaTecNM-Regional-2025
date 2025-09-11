@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "plugins": [
+      [
+        "@react-native-async-storage/async-storage",
+        {
+          "useFramework": "static"
+        }
+      ]
+    ]
+  }
+}
