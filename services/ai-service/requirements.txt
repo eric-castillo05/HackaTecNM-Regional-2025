@@ -1,0 +1,14 @@
+# Flask dependencies for AI service
+flask>=2.0.0
+flask-cors>=4.0.0
+
+# AI dependencies
+openai>=1.0.0
+python-dotenv>=1.0.0
+
+# Dash dependencies for visualization
+dash>=2.14.0
+plotly>=5.17.0
+numpy>=1.21.0
+pandas>=1.5.0
+dash-bootstrap-components>=1.5.0
