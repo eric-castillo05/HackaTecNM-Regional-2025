@@ -11,7 +11,6 @@ const Explosionado = () => {
 
     useEffect(() => {
         generatePlotlyVisualization();
-        // Timeout para evitar que el loader quede colgado indefinidamente
         const timeout = setTimeout(() => {
             if (isLoading) {
                 console.warn('Timeout: Plotly no respondió en 10 segundos');
@@ -42,6 +41,15 @@ const Explosionado = () => {
             const k = [];
             let vertexIndex = 0;
 
+            // Normalizar coordenadas
+            let maxCoord = 0;
+            vectors.forEach(triangle => {
+                triangle.forEach(vertex => {
+                    maxCoord = Math.max(maxCoord, Math.abs(vertex[0]), Math.abs(vertex[1]), Math.abs(vertex[2]));
+                });
+            });
+            const scaleFactor = maxCoord > 0 ? 1 / maxCoord : 1;
+
             vectors.forEach((triangle, index) => {
                 if (!Array.isArray(triangle) || triangle.length !== 3) {
                     console.warn(`Invalid triangle format at index ${index}:`, triangle);
@@ -52,9 +60,9 @@ const Explosionado = () => {
                         console.warn(`Invalid vertex format in triangle ${index}:`, vertex);
                         return;
                     }
-                    x.push(vertex[0]);
-                    y.push(vertex[1]);
-                    z.push(vertex[2]);
+                    x.push(vertex[0] * scaleFactor);
+                    y.push(vertex[1] * scaleFactor);
+                    z.push(vertex[2] * scaleFactor);
                 });
                 i.push(vertexIndex);
                 j.push(vertexIndex + 1);
@@ -72,7 +80,7 @@ const Explosionado = () => {
 <html>
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=15.0, user-scalable=yes">
     <title>3D Model Viewer</title>
     <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
     <style>
@@ -84,10 +92,12 @@ const Explosionado = () => {
             font-family: Arial, sans-serif;
             background-color: #f0f0f0;
             overflow: hidden;
+            touch-action: auto;
         }
         #plotDiv {
             width: 100vw;
             height: 100vh;
+            position: relative;
         }
         .loading {
             position: absolute;
@@ -98,13 +108,68 @@ const Explosionado = () => {
             color: #666;
             z-index: 10;
         }
+        .controls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            z-index: 20;
+            display: flex;
+            gap: 10px;
+        }
+        .control-btn {
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .control-btn:hover {
+            background-color: #0056b3;
+        }
     </style>
 </head>
 <body>
     <div id="plotDiv">
         <div class="loading">Cargando modelo 3D...</div>
     </div>
+    <div class="controls">
+        <button class="control-btn" onclick="zoomIn()">Zoom In</button>
+        <button class="control-btn" onclick="zoomOut()">Zoom Out</button>
+        <button class="control-btn" onclick="resetView()">Reset</button>
+    </div>
     <script>
+        let currentZoom = 2;
+        function zoomIn() {
+            currentZoom *= 0.8;
+            Plotly.relayout('plotDiv', {
+                'scene.camera.eye': {
+                    x: currentZoom * Math.cos(45 * Math.PI / 180),
+                    y: currentZoom * Math.sin(45 * Math.PI / 180),
+                    z: currentZoom
+                }
+            });
+            console.log('Zoom In:', currentZoom);
+        }
+        function zoomOut() {
+            currentZoom *= 1.25;
+            Plotly.relayout('plotDiv', {
+                'scene.camera.eye': {
+                    x: currentZoom * Math.cos(45 * Math.PI / 180),
+                    y: currentZoom * Math.sin(45 * Math.PI / 180),
+                    z: currentZoom
+                }
+            });
+            console.log('Zoom Out:', currentZoom);
+        }
+        function resetView() {
+            currentZoom = 2;
+            Plotly.relayout('plotDiv', {
+                'scene.camera.eye': { x: 2, y: 2, z: 2 }
+            });
+            console.log('Reset View');
+        }
         try {
             console.log('Initializing Plotly 3D visualization...');
             if (!${JSON.stringify(x)}.length) {
@@ -160,9 +225,12 @@ const Explosionado = () => {
                         zeroline: false
                     },
                     camera: {
-                        eye: { x: 1.2, y: 1.2, z: 1.2 }
+                        eye: { x: 2, y: 2, z: 2 },
+                        up: { x: 0, y: 0, z: 1 },
+                        projection: { type: 'perspective' }
                     },
-                    aspectmode: 'cube'
+                    aspectmode: 'cube',
+                    dragmode: 'orbit' // Priorizar rotación
                 },
                 margin: { l: 0, r: 0, b: 0, t: 40 },
                 autosize: true,
@@ -170,9 +238,12 @@ const Explosionado = () => {
             };
             const config = {
                 displayModeBar: true,
-                modeBarButtonsToRemove: ['pan2d', 'lasso2d'],
+                modeBarButtonsToAdd: ['zoom3d', 'pan3d', 'orbitRotation', 'tableRotation'],
+                modeBarButtonsToRemove: ['lasso2d'],
                 displaylogo: false,
-                responsive: true
+                responsive: true,
+                scrollZoom: true,
+                doubleClick: 'reset'
             };
             Plotly.newPlot('plotDiv', data, layout, config).then(() => {
                 console.log('Plotly plot created successfully');
@@ -183,6 +254,10 @@ const Explosionado = () => {
                 if (window.ReactNativeWebView) {
                     window.ReactNativeWebView.postMessage('loaded');
                 }
+                // Depurar eventos táctiles
+                document.getElementById('plotDiv').addEventListener('touchstart', (e) => {
+                    console.log('Touch event:', e.touches.length, e);
+                });
             }).catch(error => {
                 console.error('Error creating Plotly plot:', error);
                 const loader = document.querySelector('.loading');
@@ -234,13 +309,11 @@ const Explosionado = () => {
                 style={styles.webView}
                 javaScriptEnabled={true}
                 domStorageEnabled={true}
-                startInLoadingState={true}
-                renderLoading={() => (
-                    <View style={styles.webViewLoading}>
-                        <ActivityIndicator size="large" color="#0000ff" />
-                        <Text>Cargando modelo 3D...</Text>
-                    </View>
-                )}
+                scalesPageToFit={true}
+                setBuiltInZoomControls={true}
+                setDisplayZoomControls={false}
+                enableTouchEvents={true}
+                bounces={true} // Habilita gestos elásticos en iOS
                 onError={(syntheticEvent) => {
                     const { nativeEvent } = syntheticEvent;
                     console.error('WebView error:', nativeEvent);
