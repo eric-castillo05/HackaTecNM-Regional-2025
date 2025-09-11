@@ -1,0 +1,7 @@
+.env
+.idea
+.venv
+__pycache__
+flaskr/routes/__pycache__
+flaskr/services/__pycache__
+flaskr/utils/__pycache__
