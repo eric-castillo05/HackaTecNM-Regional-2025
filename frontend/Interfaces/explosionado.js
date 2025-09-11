@@ -67,8 +67,8 @@ const Explosionado = () => {
             background-color: #f0f0f0;
         }
         #plotDiv {
-            width: 100vw;
-            height: 100vh;
+            width: 100%;
+            height: 1000%;
         }
         .loading {
             position: absolute;
@@ -123,26 +123,32 @@ const Explosionado = () => {
 
             // Configuración del layout
             const layout = {
-                title: {
-                    text: 'Modelo 3D - Explosionado',
-                    font: { size: 16 }
-                },
                 scene: {
                     bgcolor: '#f8f9fa',
                     xaxis: {
-                        title: 'X',
+                        title: '',
                         gridcolor: '#e9ecef',
-                        zerolinecolor: '#dee2e6'
+                        zerolinecolor: '#dee2e6',
+                        showticklabels: false,
+                        showGrid: false,
+                        zeroline: false,
+                      
                     },
                     yaxis: {
-                        title: 'Y', 
+                        title: '', 
                         gridcolor: '#e9ecef',
-                        zerolinecolor: '#dee2e6'
+                        zerolinecolor: '#dee2e6',
+                        showticklabels: false,
+                        showGrid: false,
+                        zeroline: false,
                     },
                     zaxis: {
-                        title: 'Z',
+                        title: '',
                         gridcolor: '#e9ecef',
-                        zerolinecolor: '#dee2e6'
+                        zerolinecolor: '#dee2e6',
+                        showticklabels: false,
+                        showGrid: false,
+                        zeroline: false,
                     },
                     camera: {
                         eye: {
@@ -169,6 +175,9 @@ const Explosionado = () => {
             // Crear el gráfico
             Plotly.newPlot('plotDiv', data, layout, config).then(() => {
                 console.log('Plotly plot created successfully');
+                if (window.ReactNativeWebView) {
+                    window.ReactNativeWebView.postMessage("loaded");
+                }
                 
                 // Opcional: Añadir animación de rotación automática
                 // setInterval(() => {
@@ -242,6 +251,9 @@ const Explosionado = () => {
                     console.error('WebView HTTP error: ', nativeEvent);
                 }}
                 onMessage={(event) => {
+                    if (event.nativeEvent.data === "loaded") {
+                        setIsLoading(false);
+                    }
                     console.log('WebView message:', event.nativeEvent.data);
                 }}
             />
