@@ -4,3 +4,22 @@ ui/ingebot-key.json
 .git
 ui/.venv
 stl/.venv
+
+# Environment variables y archivos sensibles
+.env
+.env.local
+.env.development
+.env.production
+*.env
+
+# Node modules
+node_modules/
+
+# Backend environments
+backend/.venv
+backend/__pycache__/
+
+# Services
+services/*/node_modules/
+services/*/.env
+services/*/__pycache__/
